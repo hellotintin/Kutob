@@ -1,24 +1,13 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Singleton that owns the game loop (generate → play → exit → repeat).
-/// Also draws a simple on-screen HUD with legacy GUI showing:
-///   • Mask Vision meter bar
-///   • "Hold RMB for Mask Vision" hint
-///   • Flash message when the exit is reached
-/// No external UI framework needed — just OnGUI().
-/// </summary>
 public class GameManager : MonoBehaviour
 {
-    // ── Singleton ───────────────────────────────────────────
     public static GameManager Instance { get; private set; }
 
-    // ── Inspector ───────────────────────────────────────────
     [Header("Delay before regenerating after exit is reached (sec)")]
     public float restartDelay = 1.5f;
 
-    // ── Runtime ─────────────────────────────────────────────
     private MazeGenerator  mazeGen;
     private PlayerController player;
     private MaskVision     maskVision;
@@ -26,10 +15,8 @@ public class GameManager : MonoBehaviour
     private bool  exitReached  = false;
     private float exitTimer    = 0f;
 
-    // ── Lifecycle ───────────────────────────────────────────
     private void Awake()
     {
-        // Simple singleton – only one GameManager should exist
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -45,15 +32,14 @@ public class GameManager : MonoBehaviour
         StartRun();
     }
 
-    // Called again after every regeneration
     private void CacheReferences()
     {
-        mazeGen    = FindFirstObjectByType<MazeGenerator>();   // Unity 6
+        mazeGen    = FindFirstObjectByType<MazeGenerator>();  
         player     = FindFirstObjectByType<PlayerController>();
         maskVision = FindFirstObjectByType<MaskVision>();
     }
 
-    // ── Game Loop ───────────────────────────────────────────
+    // Game Loop
     private void StartRun()
     {
         exitReached = false;
@@ -64,7 +50,6 @@ public class GameManager : MonoBehaviour
         player.Teleport(mazeGen.startPosition);     // place player
     }
 
-    /// <summary>Called by ExitTrigger when the player reaches the exit.</summary>
     public void OnExitReached()
     {
         if (exitReached) return;   // ignore duplicate calls
@@ -79,19 +64,16 @@ public class GameManager : MonoBehaviour
         exitTimer += Time.deltaTime;
         if (exitTimer >= restartDelay)
         {
-            // Re-cache in case objects were recreated
             CacheReferences();
             StartRun();
         }
     }
 
-    // ── HUD (legacy OnGUI – no packages required) ──────────
     private void OnGUI()
     {
         int w = Screen.width;
         int h = Screen.height;
 
-        // ── Mask Vision Meter Bar ───────────────────────────
         if (maskVision != null)
         {
             float ratio = maskVision.MeterRatio;
@@ -114,18 +96,16 @@ public class GameManager : MonoBehaviour
                       "<b>KUTOB</b>  " + Mathf.CeilToInt(maskVision.currentMeter * 10) / 10f + "s");
         }
 
-        // ── Hint text ───────────────────────────────────────
+        // Hint text 
         GUI.color = new Color(1f, 1f, 1f, 0.7f);
         GUI.Label(new Rect(20, 58, 300, 20), "Hold RMB → Mask Vision");
 
-        // ── Exit reached flash ──────────────────────────────
+        // Exit reached flash
         if (exitReached)
         {
-            // Semi-transparent black overlay
             GUI.color = new Color(0f, 0f, 0f, 0.5f);
             GUI.Box(new Rect(0, 0, w, h), GUIContent.none);
 
-            // Big text in centre
             GUI.color = Color.white;
             var style = new GUIStyle(GUI.skin.label);
             style.fontSize  = 48;
@@ -138,7 +118,6 @@ public class GameManager : MonoBehaviour
                       "Regenerating…", style);
         }
 
-        // Reset GUI colour (good practice)
         GUI.color = Color.white;
     }
 }

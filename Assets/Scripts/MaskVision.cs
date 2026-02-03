@@ -1,47 +1,38 @@
 using UnityEngine;
+using UnityEngine.InputSystem;  
 
-/// <summary>
-/// Mask Vision system.
-/// Hold Right Mouse Button to activate.
-/// While active: fake walls go semi-transparent red,
-///               invisible walls flash visible in blue.
-/// A meter drains while held; recharges slowly when released.
-/// When meter hits 0 the vision cuts out and must fully recharge
-/// before it can be used again.
-/// </summary>
 public class MaskVision : MonoBehaviour
 {
-    // ── Inspector ───────────────────────────────────────────
     [Header("Meter")]
-    public float maxMeter        = 3f;   // seconds of vision
-    public float drainRate       = 1f;   // per second while held
-    public float rechargeRate    = 0.4f; // per second while released
-    [Tooltip("Meter must reach this fraction before vision can activate again.")]
+    public float maxMeter = 3f;
+    public float drainRate = 1f;
+    public float rechargeRate = 0.4f;
     public float rechargeThreshold = 0.3f;
 
-    // ── Runtime ─────────────────────────────────────────────
-    public  float currentMeter;
-    private bool  isActive   = false;
-    private bool  isCharging = false;   // true while waiting for threshold
+    public float currentMeter;
+    private bool isActive = false;
+    private bool isCharging = false;
+    private bool visionHeld = false;  // Track if RMB is held
 
-    // Cached references (set in Start)
     private MazeGenerator mazeGen;
 
-    // ── Lifecycle ───────────────────────────────────────────
     private void Start()
     {
         currentMeter = maxMeter;
-        mazeGen = FindFirstObjectByType<MazeGenerator>(); // Unity 6 API
+        mazeGen = FindFirstObjectByType<MazeGenerator>();
     }
 
-    // ── Every Frame ─────────────────────────────────────────
+    // Called by Input System when RMB is pressed/released
+    public void OnMaskVision(InputValue value)
+    {
+        visionHeld = value.isPressed;
+    }
+
     private void Update()
     {
-        bool held = Input.GetMouseButton(1); // Right Mouse Button
-
-        if (held && !isCharging && currentMeter > 0f)
+        if (visionHeld && !isCharging && currentMeter > 0f)
         {
-            // ── ACTIVATE ──
+            //  ACTIVATE 
             if (!isActive) ToggleVision(true);
             isActive = true;
 
@@ -50,13 +41,12 @@ public class MaskVision : MonoBehaviour
             {
                 currentMeter = 0f;
                 ToggleVision(false);
-                isActive   = false;
-                isCharging = true;   // force full recharge
+                isActive = false;
+                isCharging = true;
             }
         }
         else
         {
-            // ── RELEASED / DEPLETED ──
             if (isActive)
             {
                 ToggleVision(false);
@@ -68,16 +58,14 @@ public class MaskVision : MonoBehaviour
             if (currentMeter >= maxMeter)
             {
                 currentMeter = maxMeter;
-                isCharging   = false;
+                isCharging = false;
             }
 
-            // Check if we've passed the recharge threshold
             if (isCharging && currentMeter >= maxMeter * rechargeThreshold)
                 isCharging = false;
         }
     }
 
-    // ── Toggle all fake / invisible walls ───────────────────
     private void ToggleVision(bool on)
     {
         if (mazeGen == null) return;
@@ -89,6 +77,5 @@ public class MaskVision : MonoBehaviour
             iw.SetRevealed(on);
     }
 
-    // ── Read-only meter ratio (used by GameManager HUD) ────
     public float MeterRatio => currentMeter / maxMeter;
 }
