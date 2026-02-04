@@ -8,12 +8,12 @@ public class GameManager : MonoBehaviour
     [Header("Delay before regenerating after exit is reached (sec)")]
     public float restartDelay = 1.5f;
 
-    private MazeGenerator  mazeGen;
+    private MazeGenerator mazeGen;
     private PlayerController player;
-    private MaskVision     maskVision;
+    private MaskVision maskVision;
 
-    private bool  exitReached  = false;
-    private float exitTimer    = 0f;
+    private bool exitReached = false;
+    private float exitTimer = 0f;
 
     private void Awake()
     {
@@ -28,33 +28,46 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        CacheReferences();
         StartRun();
     }
 
-    private void CacheReferences()
+    /// <summary>
+    /// Safely cache references. Returns true if all required refs exist.
+    /// </summary>
+    private bool CacheReferences()
     {
-        mazeGen    = FindFirstObjectByType<MazeGenerator>();  
-        player     = FindFirstObjectByType<PlayerController>();
+        mazeGen = FindFirstObjectByType<MazeGenerator>();
+        player = FindFirstObjectByType<PlayerController>();
         maskVision = FindFirstObjectByType<MaskVision>();
+
+        if (mazeGen == null) Debug.LogWarning("MazeGenerator not found in scene!");
+        if (player == null) Debug.LogWarning("PlayerController not found in scene!");
+        if (maskVision == null) Debug.LogWarning("MaskVision not found in scene!");
+
+        return mazeGen != null && player != null;
     }
 
-    // Game Loop
+    /// <summary>
+    /// Start or restart a maze run
+    /// </summary>
     private void StartRun()
     {
         exitReached = false;
 
-        if (mazeGen == null) return;
+        if (!CacheReferences()) return;  // abort if refs missing
 
         mazeGen.Generate();                         // build maze
-        player.Teleport(mazeGen.startPosition);     // place player
+
+        // safe teleport: check player
+        if (player != null)
+            player.Teleport(mazeGen.startPosition);
     }
 
     public void OnExitReached()
     {
-        if (exitReached) return;   // ignore duplicate calls
+        if (exitReached) return;
         exitReached = true;
-        exitTimer   = 0f;
+        exitTimer = 0f;
     }
 
     private void Update()
@@ -64,8 +77,7 @@ public class GameManager : MonoBehaviour
         exitTimer += Time.deltaTime;
         if (exitTimer >= restartDelay)
         {
-            CacheReferences();
-            StartRun();
+            StartRun();  // re-run safely
         }
     }
 
@@ -82,21 +94,18 @@ public class GameManager : MonoBehaviour
             GUI.color = new Color(0.15f, 0.15f, 0.15f, 0.8f);
             GUI.Box(new Rect(20, 20, 200, 30), GUIContent.none);
 
-            // Foreground (coloured fill)
-            Color barColor = ratio > 0.4f
-                ? new Color(0.3f, 0.8f, 0.3f)   // green – healthy
-                : new Color(0.9f, 0.3f, 0.1f);  // red   – low
-
+            // Foreground (colored fill)
+            Color barColor = ratio > 0.4f ? new Color(0.3f, 0.8f, 0.3f) : new Color(0.9f, 0.3f, 0.1f);
             GUI.color = barColor;
             GUI.Box(new Rect(20, 20, 200 * ratio, 30), GUIContent.none);
 
             // Label
             GUI.color = Color.white;
             GUI.Label(new Rect(25, 22, 190, 26),
-                      "<b>KUTOB</b>  " + Mathf.CeilToInt(maskVision.currentMeter * 10) / 10f + "s");
+                      "<b>KUTOB</b> " + Mathf.CeilToInt(maskVision.currentMeter * 10) / 10f + "s");
         }
 
-        // Hint text 
+        // Hint text
         GUI.color = new Color(1f, 1f, 1f, 0.7f);
         GUI.Label(new Rect(20, 58, 300, 20), "Hold RMB → Mask Vision");
 
@@ -108,7 +117,7 @@ public class GameManager : MonoBehaviour
 
             GUI.color = Color.white;
             var style = new GUIStyle(GUI.skin.label);
-            style.fontSize  = 48;
+            style.fontSize = 48;
             style.alignment = TextAnchor.MiddleCenter;
             GUI.Label(new Rect(w * 0.25f, h * 0.4f, w * 0.5f, 80),
                       "You felt it.", style);

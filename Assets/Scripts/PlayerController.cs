@@ -1,8 +1,11 @@
+using System.Collections;
+using UnityEngine.InputSystem;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;  
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(CapsuleCollider))]
+[RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement")]
@@ -12,70 +15,120 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;
     private float verticalRotation = 0f;
-    
-    private Vector2 moveInput;
-    private Vector2 lookInput;
 
-    private void Awake()
+    public Camera playerCamera;
+    public float walkSpeed = 6f;
+    public float runSpeed = 12f;
+    public float jumpPower = 7f;
+    public float gravity = 10f;
+    public float lookSpeed = 2f;
+    public float lookXLimit = 45f;
+    public float defaultHeight = 2f;
+    public float crouchHeight = 1f;
+    public float crouchSpeed = 3f;
+
+    private Vector3 moveDirection = Vector3.zero;
+    private float rotationX = 0;
+    private CharacterController characterController;
+
+    private bool canMove = true;
+
+    void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        rb.constraints = RigidbodyConstraints.FreezeRotation;
-        rb.useGravity = false;
+        characterController = GetComponent<CharacterController>();
+        if (characterController == null)
+            Debug.LogWarning("PlayerController: CharacterController missing!");
+        if (rb == null)
+            Debug.LogWarning("PlayerController: Rigidbody missing!");
     }
 
-    private void Start()
+    void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
-    public void OnMove(InputValue value)
+    void Update()
     {
-        moveInput = value.Get<Vector2>();
-    }
+        Vector3 forward = transform.TransformDirection(Vector3.forward);
+        Vector3 right = transform.TransformDirection(Vector3.right);
 
-    public void OnLook(InputValue value)
-    {
-        lookInput = value.Get<Vector2>();
-    }
+        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        float curSpeedX = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Vertical") : 0;
+        float curSpeedY = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Horizontal") : 0;
+        float movementDirectionY = moveDirection.y;
+        moveDirection = (forward * curSpeedX) + (right * curSpeedY);
 
-    private void Update()
-    {
-        // Mouse look
-        float mouseX = lookInput.x * lookSensitivity * Time.deltaTime;
-        float mouseY = lookInput.y * lookSensitivity * Time.deltaTime;
-
-        // Horizontal rotation
-        transform.Rotate(0f, mouseX, 0f);
-
-        // Vertical rotation
-        verticalRotation -= mouseY;
-        verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
-
-        Camera cam = Camera.main;
-        if (cam != null)
+        if (Input.GetButton("Jump") && canMove && characterController.isGrounded)
         {
-            cam.transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+            moveDirection.y = jumpPower;
+        }
+        else
+        {
+            moveDirection.y = movementDirectionY;
+        }
+
+        if (!characterController.isGrounded)
+        {
+            moveDirection.y -= gravity * Time.deltaTime;
+        }
+
+        if (Input.GetKey(KeyCode.LeftControl) && canMove)
+        {
+            characterController.height = crouchHeight;
+            walkSpeed = crouchSpeed;
+            runSpeed = crouchSpeed;
+        }
+        else
+        {
+            characterController.height = defaultHeight;
+            walkSpeed = 6f;
+            runSpeed = 12f;
+        }
+
+        characterController.Move(moveDirection * Time.deltaTime);
+
+        if (canMove)
+        {
+            rotationX += -Input.GetAxis("Mouse Y") * lookSpeed;
+            rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
+            if (playerCamera != null)
+                playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
+
+            transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeed, 0);
         }
     }
 
-    private void FixedUpdate()
-    {
-        // WASD movement
-        Vector3 moveDir = transform.right * moveInput.x +
-                         transform.forward * moveInput.y;
-
-        if (moveDir.magnitude > 1f)
-            moveDir.Normalize();
-
-        rb.linearVelocity = moveDir * moveSpeed;
-    }
-
+    /// <summary>
+    /// Safely teleport player to position.
+    /// Works with Rigidbody or CharacterController if available.
+    /// Won't crash if a component is missing.
+    /// </summary>
     public void Teleport(Vector3 pos)
     {
-        rb.MovePosition(pos + Vector3.up * 0.5f);
-        rb.linearVelocity = Vector3.zero;
+        if (characterController != null)
+        {
+            characterController.enabled = false;  // temporarily disable
+            characterController.transform.position = pos;
+            characterController.enabled = true;
+        }
+        else if (rb != null)
+        {
+            rb.position = pos + Vector3.up * 0.5f;
+            rb.velocity = Vector3.zero;
+        }
+        else
+        {
+            // fallback: just move transform
+            transform.position = pos;
+        }
+
+        // Reset rotation & vertical look
         verticalRotation = 0f;
         transform.rotation = Quaternion.identity;
+
+        if (playerCamera != null)
+            playerCamera.transform.localRotation = Quaternion.identity;
     }
 }

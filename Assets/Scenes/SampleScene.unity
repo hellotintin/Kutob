@@ -418,6 +418,7 @@ MonoBehaviour:
   fakeWallPrefab: {fileID: 702647493366790038, guid: 5292979a07aee0246a1f12553d3a84a3, type: 3}
   invisWallPrefab: {fileID: 1528593871110503205, guid: e9600d87ff1c966408641458bcc61895, type: 3}
   exitPrefab: {fileID: 1337377583287879851, guid: fbc2fd26a7c028c45a90d2c49499b193, type: 3}
+  Floor: {fileID: 4017884287499836353, guid: d63b2f92c29fb5e4db59750d412def55, type: 3}
   fakeWallChance: 0.15
   invisWallChance: 0.1
   fakeWalls: []
@@ -451,6 +452,7 @@ GameObject:
   - component: {fileID: 1086060171}
   - component: {fileID: 1086060170}
   - component: {fileID: 1086060169}
+  - component: {fileID: 1086060175}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -473,6 +475,16 @@ MonoBehaviour:
   moveSpeed: 4
   lookSensitivity: 2
   maxLookAngle: 80
+  playerCamera: {fileID: 0}
+  walkSpeed: 6
+  runSpeed: 12
+  jumpPower: 7
+  gravity: 10
+  lookSpeed: 2
+  lookXLimit: 45
+  defaultHeight: 2
+  crouchHeight: 1
+  crouchSpeed: 3
 --- !u!54 &1086060170
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -495,11 +507,11 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 0
+  m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 1
+  m_Constraints: 126
+  m_CollisionDetection: 0
 --- !u!136 &1086060171
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -589,12 +601,37 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.35353, y: 0.24748, z: 0.35354}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.8409, y: 0.8409, z: 0.8409}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 330585546}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &1086060175
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1086060168}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1385151032
 GameObject:
   m_ObjectHideFlags: 0
