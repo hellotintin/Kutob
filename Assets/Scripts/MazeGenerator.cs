@@ -30,11 +30,15 @@ public class MazeGenerator : MonoBehaviour
     public Vector3 startPosition { get; private set; }
     private GameObject mazeParent;
 
+    // Store the guaranteed path from start to exit
+    private HashSet<(int r, int c)> criticalPath = new HashSet<(int r, int c)>();
+
     public void Generate()
     {
         ClearMaze();
         fakeWalls.Clear();
         invisWalls.Clear();
+        criticalPath.Clear();
 
         EnsureOddSize();
         grid = new int[rows, cols];
@@ -42,9 +46,19 @@ public class MazeGenerator : MonoBehaviour
         mazeParent = new GameObject("Maze");
 
         CarvePassages();
+        
+        // Find exit location FIRST and calculate the path to it
+        var exitPos = FindAndMarkExitPath();
+        
+        // Now place walls (fake walls are fine anywhere)
         PlaceWalls();
+        
+        // Place invisible walls ONLY on cells NOT in the critical path
         PlaceInvisibleWalls();
-        PlaceExit();
+        
+        // Spawn the actual exit cube
+        SpawnExit(exitPos.r, exitPos.c);
+        
         PlaceFloor();
         PlaceRoof();
 
@@ -83,6 +97,83 @@ public class MazeGenerator : MonoBehaviour
                 Carve(nr, nc, visited);
             }
         }
+    }
+
+    // Find exit and mark the entire path to it
+    private (int r, int c) FindAndMarkExitPath()
+    {
+        var dist = new int[rows, cols];
+        var visited = new bool[rows, cols];
+        var parent = new Dictionary<(int, int), (int, int)>();
+        var queue = new Queue<(int r, int c)>();
+
+        queue.Enqueue((1, 1));
+        visited[1, 1] = true;
+        parent[(1, 1)] = (-1, -1); // Start has no parent
+
+        int farthestR = 1, farthestC = 1, farthestDist = 0;
+
+        // BFS to find the farthest dead-end
+        while (queue.Count > 0)
+        {
+            var (r, c) = queue.Dequeue();
+
+            int openNeighbours = CountOpenNeighbours(r, c);
+            if (openNeighbours == 1 && !(r == 1 && c == 1))
+            {
+                if (dist[r, c] > farthestDist)
+                {
+                    farthestDist = dist[r, c];
+                    farthestR = r;
+                    farthestC = c;
+                }
+            }
+
+            foreach (var (dr, dc) in new[] { (0, 1), (0, -1), (1, 0), (-1, 0) })
+            {
+                int nr = r + dr;
+                int nc = c + dc;
+
+                if (InBounds(nr, nc) && !visited[nr, nc] && grid[nr, nc] == 1)
+                {
+                    visited[nr, nc] = true;
+                    dist[nr, nc] = dist[r, c] + 1;
+                    parent[(nr, nc)] = (r, c);
+                    queue.Enqueue((nr, nc));
+                }
+            }
+        }
+
+        // Backtrack from exit to start to mark the critical path
+        int currR = farthestR;
+        int currC = farthestC;
+
+        while (currR != -1 && currC != -1)
+        {
+            criticalPath.Add((currR, currC));
+            
+            if (!parent.ContainsKey((currR, currC)))
+                break;
+                
+            var p = parent[(currR, currC)];
+            currR = p.Item1;
+            currC = p.Item2;
+        }
+
+        Debug.Log($"[MazeGenerator] Exit at ({farthestR}, {farthestC}), critical path has {criticalPath.Count} cells");
+
+        return (farthestR, farthestC);
+    }
+
+    private void SpawnExit(int r, int c)
+    {
+        var exitObj = Instantiate(
+            exitPrefab,
+            GridToWorld(r, c),
+            Quaternion.identity,
+            mazeParent.transform
+        );
+        exitObj.name = "Exit";
     }
 
     private void PlaceWalls()
@@ -125,8 +216,7 @@ public class MazeGenerator : MonoBehaviour
 
     private void PlaceFloor()
     {
-        // Lower the floor below walls
-        float floorYOffset = -1f; // Adjust this to sit below walls
+        float floorYOffset = -1f;
 
         var floor = Instantiate(
             Floor,
@@ -140,19 +230,12 @@ public class MazeGenerator : MonoBehaviour
         );
 
         floor.name = "Floor";
-
-        // Scale to cover the maze
-        floor.transform.localScale = new Vector3(
-            cols,
-            1f,
-            rows
-        );
+        floor.transform.localScale = new Vector3(cols, 1f, rows);
     }
 
     private void PlaceRoof()
     {
-        // Place the roof above walls (walls are at Y=0, so roof sits higher)
-        float roofYOffset = 1.7f; // Adjust this to sit above walls
+        float roofYOffset = 2f;
 
         var roof = Instantiate(
             Roof,
@@ -166,27 +249,32 @@ public class MazeGenerator : MonoBehaviour
         );
 
         roof.name = "Roof";
-
-        // Scale to cover the maze (same as floor)
-        roof.transform.localScale = new Vector3(
-            cols,
-            1f,
-            rows
-        );
+        roof.transform.localScale = new Vector3(cols, 1f, rows);
     }
 
+    // DONT EVER place invisible walls on the critical path!!!!!!!!!!
     private void PlaceInvisibleWalls()
     {
         var pathCells = new List<(int r, int c)>();
 
         for (int r = 1; r < rows - 1; r++)
+        {
             for (int c = 1; c < cols - 1; c++)
-                if (grid[r, c] == 1 && !(r == 1 && c == 1))
+            {
+                if (grid[r, c] == 1 && 
+                    !(r == 1 && c == 1) && 
+                    !criticalPath.Contains((r, c)))
+                {
                     pathCells.Add((r, c));
+                }
+            }
+        }
 
         Shuffle(pathCells);
 
         int count = Mathf.FloorToInt(pathCells.Count * invisWallChance);
+
+        Debug.Log($"[MazeGenerator] Placing {count} invisible walls from {pathCells.Count} eligible cells (avoided {criticalPath.Count} critical path cells)");
 
         for (int i = 0; i < count && i < pathCells.Count; i++)
         {
@@ -200,55 +288,6 @@ public class MazeGenerator : MonoBehaviour
             obj.name = $"InvisWall_{r}_{c}";
             invisWalls.Add(obj.GetComponent<InvisibleWall>());
         }
-    }
-
-    private void PlaceExit()
-    {
-        var dist = new int[rows, cols];
-        var visited = new bool[rows, cols];
-        var queue = new Queue<(int r, int c)>();
-
-        queue.Enqueue((1, 1));
-        visited[1, 1] = true;
-
-        int farthestR = 1, farthestC = 1, farthestDist = 0;
-
-        while (queue.Count > 0)
-        {
-            var (r, c) = queue.Dequeue();
-
-            int openNeighbours = CountOpenNeighbours(r, c);
-            if (openNeighbours == 1 && !(r == 1 && c == 1))
-            {
-                if (dist[r, c] > farthestDist)
-                {
-                    farthestDist = dist[r, c];
-                    farthestR = r;
-                    farthestC = c;
-                }
-            }
-
-            foreach (var (dr, dc) in new[] { (0, 1), (0, -1), (1, 0), (-1, 0) })
-            {
-                int nr = r + dr;
-                int nc = c + dc;
-
-                if (InBounds(nr, nc) && !visited[nr, nc] && grid[nr, nc] == 1)
-                {
-                    visited[nr, nc] = true;
-                    dist[nr, nc] = dist[r, c] + 1;
-                    queue.Enqueue((nr, nc));
-                }
-            }
-        }
-
-        var exitObj = Instantiate(
-            exitPrefab,
-            GridToWorld(farthestR, farthestC),
-            Quaternion.identity,
-            mazeParent.transform
-        );
-        exitObj.name = "Exit";
     }
 
     private void EnsureOddSize()
