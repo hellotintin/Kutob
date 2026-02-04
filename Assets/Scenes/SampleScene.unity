@@ -419,6 +419,7 @@ MonoBehaviour:
   invisWallPrefab: {fileID: 1528593871110503205, guid: e9600d87ff1c966408641458bcc61895, type: 3}
   exitPrefab: {fileID: 1337377583287879851, guid: fbc2fd26a7c028c45a90d2c49499b193, type: 3}
   Floor: {fileID: 4017884287499836353, guid: d63b2f92c29fb5e4db59750d412def55, type: 3}
+  Roof: {fileID: 4017884287499836353, guid: d84d53084a66c5044a517350ae18d505, type: 3}
   fakeWallChance: 0.15
   invisWallChance: 0.1
   fakeWalls: []
@@ -601,7 +602,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.35353, y: 0.24748, z: 0.35354}
-  m_LocalScale: {x: 0.8409, y: 0.8409, z: 0.8409}
+  m_LocalScale: {x: 0.5409, y: 0.5409, z: 0.5409}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 330585546}
@@ -665,6 +666,7 @@ MonoBehaviour:
   drainRate: 1
   rechargeRate: 0.4
   rechargeThreshold: 0.3
+  enableDebugLogs: 1
   currentMeter: 0
 --- !u!4 &1385151034
 Transform:

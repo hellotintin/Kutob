@@ -116,7 +116,7 @@ public class PlayerController : MonoBehaviour
         else if (rb != null)
         {
             rb.position = pos + Vector3.up * 0.5f;
-            rb.velocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
         }
         else
         {

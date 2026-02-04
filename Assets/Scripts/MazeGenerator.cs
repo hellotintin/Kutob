@@ -14,6 +14,7 @@ public class MazeGenerator : MonoBehaviour
     public GameObject invisWallPrefab;
     public GameObject exitPrefab;
     public GameObject Floor;
+    public GameObject Roof;
 
     [Header("Tuning")]
     [Range(0.05f, 0.40f)]
@@ -45,6 +46,7 @@ public class MazeGenerator : MonoBehaviour
         PlaceInvisibleWalls();
         PlaceExit();
         PlaceFloor();
+        PlaceRoof();
 
         startPosition = GridToWorld(1, 1);
     }
@@ -141,6 +143,32 @@ public class MazeGenerator : MonoBehaviour
 
         // Scale to cover the maze
         floor.transform.localScale = new Vector3(
+            cols,
+            1f,
+            rows
+        );
+    }
+
+    private void PlaceRoof()
+    {
+        // Place the roof above walls (walls are at Y=0, so roof sits higher)
+        float roofYOffset = 1.7f; // Adjust this to sit above walls
+
+        var roof = Instantiate(
+            Roof,
+            new Vector3(
+                (cols - 1) / 2f,
+                roofYOffset,
+                (rows - 1) / 2f
+            ),
+            Quaternion.identity,
+            mazeParent.transform
+        );
+
+        roof.name = "Roof";
+
+        // Scale to cover the maze (same as floor)
+        roof.transform.localScale = new Vector3(
             cols,
             1f,
             rows

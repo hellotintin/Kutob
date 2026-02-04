@@ -47,14 +47,14 @@ public class GameManager : MonoBehaviour
         return mazeGen != null && player != null;
     }
 
-    /// <summary>
+
     /// Start or restart a maze run
-    /// </summary>
+
     private void StartRun()
     {
         exitReached = false;
 
-        if (!CacheReferences()) return;  // abort if refs missing
+        if (!CacheReferences()) return;  
 
         mazeGen.Generate();                         // build maze
 
