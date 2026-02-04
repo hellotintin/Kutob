@@ -235,7 +235,7 @@ public class MazeGenerator : MonoBehaviour
 
     private void PlaceRoof()
     {
-        float roofYOffset = 2f;
+        float roofYOffset = 1.5f;
 
         var roof = Instantiate(
             Roof,

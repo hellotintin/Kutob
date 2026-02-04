@@ -86,47 +86,40 @@ public class GameManager : MonoBehaviour
         int w = Screen.width;
         int h = Screen.height;
 
+        GUIStyle largeMeterStyle = new GUIStyle(GUI.skin.label);
+        largeMeterStyle.fontSize = 20; // Bigger font size
+        largeMeterStyle.fontStyle = FontStyle.Bold;
+        largeMeterStyle.normal.textColor = Color.white;
+
+        GUIStyle largeHintStyle = new GUIStyle(GUI.skin.label);
+        largeHintStyle.fontSize = 16; // Bigger font size
+        largeHintStyle.normal.textColor = new Color(1f, 1f, 1f, 0.7f);
+
         if (maskVision != null)
         {
             float ratio = maskVision.MeterRatio;
 
-            // Background (dark bar)
+            // Background (dark bar) - increased height for larger text
             GUI.color = new Color(0.15f, 0.15f, 0.15f, 0.8f);
-            GUI.Box(new Rect(20, 20, 200, 30), GUIContent.none);
+            GUI.Box(new Rect(20, 20, 200, 40), GUIContent.none);
 
-            // Foreground (colored fill)
-            Color barColor = ratio > 0.4f ? new Color(0.3f, 0.8f, 0.3f) : new Color(0.9f, 0.3f, 0.1f);
+            // Foreground (coloured fill)
+            Color barColor = ratio > 0.4f
+                ? new Color(0.3f, 0.8f, 0.3f)   // green – healthy
+                : new Color(0.9f, 0.3f, 0.1f);  // red   – low
+
             GUI.color = barColor;
-            GUI.Box(new Rect(20, 20, 200 * ratio, 30), GUIContent.none);
+            GUI.Box(new Rect(20, 20, 200 * ratio, 40), GUIContent.none);
 
-            // Label
+            // Label with larger font
             GUI.color = Color.white;
-            GUI.Label(new Rect(25, 22, 190, 26),
-                      "<b>KUTOB</b> " + Mathf.CeilToInt(maskVision.currentMeter * 10) / 10f + "s");
+            GUI.Label(new Rect(25, 22, 190, 36),
+                      "<b>KUTOB</b>  " + Mathf.CeilToInt(maskVision.currentMeter * 10) / 10f + "s",
+                      largeMeterStyle);
         }
 
-        // Hint text
-        GUI.color = new Color(1f, 1f, 1f, 0.7f);
-        GUI.Label(new Rect(20, 58, 300, 20), "Hold RMB → Mask Vision");
-
-        // Exit reached flash
-        if (exitReached)
-        {
-            GUI.color = new Color(0f, 0f, 0f, 0.5f);
-            GUI.Box(new Rect(0, 0, w, h), GUIContent.none);
-
-            GUI.color = Color.white;
-            var style = new GUIStyle(GUI.skin.label);
-            style.fontSize = 48;
-            style.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(w * 0.25f, h * 0.4f, w * 0.5f, 80),
-                      "You felt it.", style);
-
-            style.fontSize = 24;
-            GUI.Label(new Rect(w * 0.3f, h * 0.55f, w * 0.4f, 40),
-                      "Regenerating…", style);
-        }
-
-        GUI.color = Color.white;
+        GUI.Label(new Rect(20, 65, 300, 25),
+                  "Hold RMB → Mask Vision",
+                  largeHintStyle);
     }
 }
